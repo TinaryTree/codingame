@@ -11,7 +11,7 @@ def op_color(color):
     :param color:
     :return:
     """
-    return 1 - color
+    return str(1 - int(color))
 
 
 def action2point(_action):
@@ -34,8 +34,6 @@ class Board:
     def __init__(self, _lines, _actions):
         self.actions = _actions
         _board = np.array(_lines)
-        _board[_board == '0'] = 0
-        _board[_board == '1'] = 1
         _board = np.insert(_board, 8, [['x'] * 8], 1)
         _board = np.insert(_board, 0, [['x'] * 8], 1)
         _board = np.insert(_board, 8, [['x'] * 10], 0)
@@ -57,9 +55,7 @@ class Board:
         # 如果落子少于一半的添加策略
         # todo 未来在优化残局策略
         op_points = np.argwhere(self._board == op_color(color))
-        print(op_points, file=sys.stderr, flush=False)
         for r, l in op_points:
-            print((r, l), file=sys.stderr, flush=False)
             if self._board[r][l] == op_color(color):
                 for dx, dy in direction:
                     x, y = r + dy, l + dx
@@ -135,7 +131,7 @@ class Board:
 
 
 direction = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
-_id = int(input())  # id of your player.
+_id = input()  # id of your player.
 print(_id, file=sys.stderr, flush=True)
 board_size = int(input())
 # game loop
@@ -149,11 +145,11 @@ while True:
     for _ in actions:
         p = action2point(_)
         board.move(p, _id)
-        value = list(board.get_actions(op_color(_id))).__len__()
+        value = list(board.get_actions(op_color(_id))).__len__()*(-1)
         print((_, value), file=sys.stderr, flush=True)
         board.undo(p)
         values.append(value)
-    i = values.index(min(values))
+    i = values.index(max(values))
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
     print(actions[i])
