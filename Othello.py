@@ -1,6 +1,6 @@
 """Othello"""
-import random
 import sys
+from typing import List, Any
 
 import numpy as np
 
@@ -14,10 +14,22 @@ def op_color(color):
     return 1 - color
 
 
+def action2point(_action):
+    """
+    字符转坐标
+    :param _action:
+    """
+    x = int(_action[1])
+    y = ord(_action[0]) - ord('a') + 1
+    return x, y
+
+
 class Board:
     """
     棋盘, ('.': empty, '0': black, '1': white)
     """
+    cur_color: int
+    cur_flips: List[Any]
 
     def __init__(self, _lines, _actions):
         self.actions = _actions
@@ -32,7 +44,7 @@ class Board:
         """
         展示棋盘
         """
-        print(self._board, file=sys.stderr, flush=True)
+        print(self._board, file=sys.stderr, flush=False)
 
     def get_actions(self, color):
         """
@@ -55,30 +67,66 @@ class Board:
 
     def reversible(self, point, color):
         """
-        检验当前落子是否合法,如果一个方向上成功就不在计算其他方向
+        检验当前落子是否合法,如果一个方向上成功就不再计算其他方向
         :param point: (x,y)
         :param color: 1 or 0
         :return: False or True
         """
         x, y = point
-        self._board[x][y] = color
+        _board = self._board
+        _board[x][y] = color
         for xd, yd in direction:
-            while True:
-                x += xd
-                y += yd
-                if self._board[x][y] != op_color(color):
-                    break
-            if self._board == color:
-                return True
+            x, y = point
+            x += xd
+            y += yd
+            if _board[x][y] == op_color(color):
+                while True:
+                    x += xd
+                    y += yd
+                    if _board[x][y] != op_color(color):
+                        break
+                if _board[x][y] == color:
+                    return True
+                else:
+                    continue
             else:
                 continue
         return False
 
-    def move(self):
+    def move(self, point, color):
         """
         落子并翻转
         """
+        x, y = point
+        self._board[x][y] = color
+        flips = []
+        for xd, yd in direction:
+            x, y = point
+            cur_dir = []
+            while True:
+                x += xd
+                y += yd
+                if self._board[x][y] == op_color(color):
+                    cur_dir.append((x, y))
+                else:
+                    break
+            if self._board[x][y] == color:
+                flips += cur_dir
+            else:
+                continue
+        for x, y in flips:
+            self._board[x][y] = color
+        self.cur_flips = flips
+        self.cur_color = color
 
+    def undo(self, point):
+        """
+        撤回上一步
+        """
+        x, y = point
+        self._board[x][y] = '.'
+        for x, y in self.cur_flips:
+            self._board[x][y] = op_color(self.cur_color)
         pass
 
 
@@ -86,7 +134,6 @@ direction = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1
 _id = int(input())  # id of your player.
 print(_id, file=sys.stderr, flush=True)
 board_size = int(input())
-print(board_size, file=sys.stderr, flush=True)
 # game loop
 while True:
     lines = [list(input()) for _ in range(board_size)]  # from top to bottom
@@ -94,6 +141,14 @@ while True:
     actions = [input() for _ in range(action_count)]
     board = Board(lines, actions)
     board.show()
+    values = []
+    for _ in actions:
+        p = action2point(_)
+        board.move(p, _id)
+        value = list(board.get_actions(op_color(_id))).__len__()
+        board.undo(p)
+        values.append(value)
+    i = values.index(min(values))
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
-    print(actions[random.randint(0, action_count - 1)])
+    print(actions[i])
