@@ -34,6 +34,8 @@ class Board:
     def __init__(self, _lines, _actions):
         self.actions = _actions
         _board = np.array(_lines)
+        _board[_board == '0'] = 0
+        _board[_board == '1'] = 1
         _board = np.insert(_board, 8, [['x'] * 8], 1)
         _board = np.insert(_board, 0, [['x'] * 8], 1)
         _board = np.insert(_board, 8, [['x'] * 10], 0)
@@ -54,13 +56,15 @@ class Board:
         op_nearly_empty_points = set()
         # 如果落子少于一半的添加策略
         # todo 未来在优化残局策略
-        for r in range(board_size):
-            for l in range(board_size):
-                if self._board[r][l] == op_color(color):
-                    for dx, dy in direction:
-                        x, y = l + dx, r + dy
-                        if self._board[x][y] == '.':
-                            op_nearly_empty_points.add((x, y))
+        op_points = np.argwhere(self._board == op_color(color))
+        print(op_points, file=sys.stderr, flush=False)
+        for r, l in op_points:
+            print((r, l), file=sys.stderr, flush=False)
+            if self._board[r][l] == op_color(color):
+                for dx, dy in direction:
+                    x, y = r + dy, l + dx
+                    if self._board[x][y] == '.':
+                        op_nearly_empty_points.add((x, y))
         for point in op_nearly_empty_points:
             if self.reversible(point, color):
                 yield point
@@ -146,6 +150,7 @@ while True:
         p = action2point(_)
         board.move(p, _id)
         value = list(board.get_actions(op_color(_id))).__len__()
+        print((_, value), file=sys.stderr, flush=True)
         board.undo(p)
         values.append(value)
     i = values.index(min(values))
