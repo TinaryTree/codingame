@@ -73,7 +73,7 @@ class Board:
         :return: False or True
         """
         x, y = point
-        _board = self._board
+        _board = copy.copy(self._board)
         _board[x][y] = color
         for xd, yd in direction:
             x, y = point
