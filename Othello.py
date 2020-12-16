@@ -1,4 +1,5 @@
 """Othello"""
+import copy
 import sys
 from typing import List, Any
 
@@ -24,6 +25,17 @@ def action2point(_action):
     return x, y
 
 
+def point2action(point):
+    """
+    坐标转字符
+    :param point:
+    :return:
+    """
+    x, y = point
+    strings = 'xabcdefghx'
+    return f"{strings[int(y)]}{x}"
+
+
 class Board:
     """
     棋盘, ('.': empty, '0': black, '1': white)
@@ -31,7 +43,8 @@ class Board:
     cur_color: int
     cur_flips: List[Any]
 
-    def __init__(self, _lines, _actions):
+    def __init__(self, _lines, _actions, color):
+        self.color = color
         self.actions = _actions
         _board = np.array(_lines)
         _board = np.insert(_board, 8, [['x'] * 8], 1)
@@ -39,6 +52,7 @@ class Board:
         _board = np.insert(_board, 8, [['x'] * 10], 0)
         _board = np.insert(_board, 0, [['x'] * 10], 0)
         self._board = _board
+        self.depth = 0
 
     def show(self):
         """
@@ -65,9 +79,10 @@ class Board:
             if self.reversible(point, color):
                 yield point
 
-    def reversible(self, point, color):
+    def reversible(self, point, color: str):
         """
         检验当前落子是否合法,如果一个方向上成功就不再计算其他方向
+        :type color: str
         :param point: (x,y)
         :param color: 1 or 0
         :return: False or True
@@ -129,6 +144,53 @@ class Board:
             self._board[x][y] = op_color(self.cur_color)
         pass
 
+    def alpha_beta(self, max_depth, color, a, b):
+        """
+        a-b剪枝
+        :param color:
+        :param a:
+        :param b:
+        :param max_depth:最大递归深度
+        :return:
+        """
+        if self.depth > max_depth:
+            return None, list(board.get_actions(op_color(self.color))).__len__() * -1
+        points = list(board.get_actions(color))
+        print(points, file=sys.stderr, flush=False)
+        if not points:
+            if not list(board.get_actions(op_color(color))):
+                return None, list(board.get_actions(op_color(self.color))).__len__() * -1
+            return self.alpha_beta(max_depth, op_color(color), a, b)
+        _max = -9999999
+        _min = 9999999
+        point = None
+        for _p in points:
+            self.move(_p, self.color)
+            self.depth += 1
+            p1, _value = self.alpha_beta(max_depth, op_color(color), a, b)
+            self.depth -= 1
+            board.undo(_p)
+            if color == self.color:
+                if _value > a:
+                    if _value > b:
+                        return _p, _value
+                    a = _value
+                if _value > _max:
+                    _max = _value
+                    point = _p
+            else:
+                if _value < b:
+                    if _value < a:
+                        return _p, _value
+                    b = _value
+                if _value < _min:
+                    _min = _value
+                    point = _p
+            if color == self.color:
+                return point, _max
+            else:
+                return point, _min
+
 
 direction = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
 _id = input()  # id of your player.
@@ -139,17 +201,20 @@ while True:
     lines = [list(input()) for _ in range(board_size)]  # from top to bottom
     action_count = int(input())  # number of legal actions for this turn.
     actions = [input() for _ in range(action_count)]
-    board = Board(lines, actions)
+    board = Board(lines, actions, _id)
     board.show()
+    print(list(map(point2action, board.get_actions(_id))), file=sys.stderr, flush=False)
     values = []
     for _ in actions:
         p = action2point(_)
         board.move(p, _id)
-        value = list(board.get_actions(op_color(_id))).__len__()*(-1)
+        value = list(board.get_actions(op_color(_id))).__len__() * -1
         print((_, value), file=sys.stderr, flush=True)
         board.undo(p)
         values.append(value)
     i = values.index(max(values))
+    print(actions[i])
+    # p, value = board.alpha_beta(6, _id, -9999999, 9999999)
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
-    print(actions[i])
+    # print(point2action(p))
