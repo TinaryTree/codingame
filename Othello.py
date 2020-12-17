@@ -44,6 +44,7 @@ class Board:
     cur_flips: List[Any]
 
     def __init__(self, _lines, _actions, color):
+        self.steps = []
         self.color = color
         self.actions = _actions
         _board = np.array(_lines)
@@ -133,6 +134,7 @@ class Board:
             self._board[x][y] = color
         self.cur_flips = flips
         self.cur_color = color
+        self.steps.append(point)
 
     def undo(self, point):
         """
@@ -140,56 +142,65 @@ class Board:
         """
         x, y = point
         self._board[x][y] = '.'
+        self.steps.pop(-1)
         for x, y in self.cur_flips:
             self._board[x][y] = op_color(self.cur_color)
         pass
 
-    def alpha_beta(self, max_depth, color, a, b):
+    def alpha_beta(self, max_depth, color, a, b, best_value=-999999):
         """
         a-b剪枝
+        :param best_value:
         :param color:
         :param a:
         :param b:
         :param max_depth:最大递归深度
         :return:
         """
-        if self.depth > max_depth:
-            return None, list(board.get_actions(op_color(self.color))).__len__() * -1
+
         points = list(board.get_actions(color))
+        print(('step', self.steps), file=sys.stderr, flush=False)
+        print(('ab', (a, b)), file=sys.stderr, flush=False)
         print(points, file=sys.stderr, flush=False)
         if not points:
             if not list(board.get_actions(op_color(color))):
-                return None, list(board.get_actions(op_color(self.color))).__len__() * -1
-            return self.alpha_beta(max_depth, op_color(color), a, b)
-        _max = -9999999
-        _min = 9999999
-        point = None
-        for _p in points:
-            self.move(_p, self.color)
-            self.depth += 1
-            p1, _value = self.alpha_beta(max_depth, op_color(color), a, b)
-            self.depth -= 1
-            board.undo(_p)
-            if color == self.color:
-                if _value > a:
-                    if _value > b:
-                        return _p, _value
-                    a = _value
-                if _value > _max:
-                    _max = _value
-                    point = _p
+                return None, self.evaluation(color)
             else:
-                if _value < b:
-                    if _value < a:
-                        return _p, _value
-                    b = _value
-                if _value < _min:
-                    _min = _value
-                    point = _p
-            if color == self.color:
-                return point, _max
-            else:
-                return point, _min
+                color = op_color(color)
+                _, _value = self.alpha_beta(max_depth, op_color(color), -b, -a)
+                return _value * -1
+        if self.depth > max_depth:
+            best_value = self.evaluation(color) * -1
+            print(('达到最大深度', best_value), file=sys.stderr, flush=False)
+        else:
+            for _p in points:
+                self.move(_p, color)
+                self.depth += 1
+                _, _value = self.alpha_beta(max_depth, op_color(color), -b, -a)
+                _value *= -1
+                self.depth -= 1
+                board.undo(_p)
+                print((_p, _value), file=sys.stderr, flush=False)
+                if _value >= b:
+                    print('剪枝', file=sys.stderr, flush=False)
+                    return _p, _value
+                if _value > best_value:
+                    best_value = _value
+                    best_p = _p
+                    if _value > a:
+                        a = _value
+        return best_p, best_value
+
+    def evaluation(self, color):
+        """
+        局面评估
+        :param color:
+        :return:
+        """
+        moves = self.get_actions(color)
+        # stable = getstable(board, mycolor)
+        # value = mapweightsum(board, mycolor) + 15 * (len(moves) - len(moves_)) + 10 * sum(stable)
+        return len(list(moves))
 
 
 direction = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
@@ -203,18 +214,21 @@ while True:
     actions = [input() for _ in range(action_count)]
     board = Board(lines, actions, _id)
     board.show()
-    print(list(map(point2action, board.get_actions(_id))), file=sys.stderr, flush=False)
-    values = []
-    for _ in actions:
-        p = action2point(_)
-        board.move(p, _id)
-        value = list(board.get_actions(op_color(_id))).__len__() * -1
-        print((_, value), file=sys.stderr, flush=True)
-        board.undo(p)
-        values.append(value)
-    i = values.index(max(values))
-    print(actions[i])
-    # p, value = board.alpha_beta(6, _id, -9999999, 9999999)
+    # print(list(map(point2action, board.get_actions(_id))), file=sys.stderr, flush=False)
+
+    # values = []
+    # for _ in actions:
+    #     p = action2point(_)
+    #     board.move(p, _id)
+    #     value = list(board.get_actions(op_color(_id))).__len__() * -1
+    #     print((_, value), file=sys.stderr, flush=True)
+    #     board.undo(p)
+    #     values.append(value)
+    # i = values.index(max(values))
+    # print(actions[i])
+
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
-    # print(point2action(p))
+    p, value = board.alpha_beta(2, _id, -9999999, 9999999)
+    print(('lastvalue', value), file=sys.stderr, flush=True)
+    print(point2action(p))
