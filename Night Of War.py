@@ -1,25 +1,27 @@
 # Jrke's special
 # -Kill your enemy soldiers or Have more bucks than your enemy at end of game
-import sys
 
 my_id = int(input())  # Your unique player Id
 map_size = int(input())  # the size of map MapSize*MapSize
 
 directions = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
-move_directions = [(0, -1)]
 
 
 class WarMap:
     def __init__(self, blocks: list):
         self.blocks = blocks
+        self.pos = [(_x, _y) for owner, _x, _y in blocks]
 
-    def check(self, px, py):
-        for owner, _x, _y in self.blocks:
-            # print(f'check:{px}{py}', file=sys.stderr, flush=True)
-            # print(f'blocks:{self.blocks}', file=sys.stderr, flush=True)
-            if _x == px and _y == py:
-                return True
+    def check(self, px, py, soldiers: list):
+        soldiers_pos = [(_.x, _.y) for _ in soldiers]
+        if ((px, py) in self.pos) and ((px, py) not in soldiers_pos):
+            return True
         return False
+
+    def get_owner(self, px, py):
+        for owner, _x, _y in self.blocks:
+            if px == _x and py == _y:
+                return owner
 
 
 class Soldier:
@@ -32,22 +34,21 @@ class Soldier:
         self.war_map = war_map
         self.owner_id = owner_id
 
-    def cam_move(self):
+    def cam_move(self, soldiers):
         res = []
-        # print(f'can_move:{self.x}{self.y}', file=sys.stderr, flush=True)
-        if war_map.check(self.x, self.y - 1) and self.direction != 2:
+        if war_map.check(self.x, self.y - 1, soldiers) and self.direction != 2:
             res.append('UP')
-        if war_map.check(self.x - 1, self.y) and self.direction != 3:
+        if war_map.check(self.x - 1, self.y, soldiers) and self.direction != 3:
             res.append('LEFT')
-        if war_map.check(self.x, self.y + 1) and self.direction != 0:
+        if war_map.check(self.x, self.y + 1, soldiers) and self.direction != 0:
             res.append('DOWN')
-        if war_map.check(self.x + 1, self.y) and self.direction != 1:
+        if war_map.check(self.x + 1, self.y, soldiers) and self.direction != 1:
             res.append('RIGHT')
         return res
 
     def around_pos(self):
         positions = ((self.x + _x, self.y + _y) for _x, _y in directions)
-        positions = ((_x, _y) for _x, _y in positions if self.war_map.check(_x, _y))
+        positions = ((_x, _y) for _x, _y in positions if self.war_map.check(_x, _y, my_soldiers))
         if self.direction == 0:  # up
             return [(_x, _y) for _x, _y in positions if _y <= self.y]
         if self.direction == 1:  # LEFT
@@ -99,11 +100,13 @@ while True:
             op_soldiers.append(soldier)
     for _ in my_soldiers:
         for _op in op_soldiers:
-            print(f'{_op.x}{_op.y} att:{_.can_attack()}', file=sys.stderr, flush=True)
+            # print(f'{_op.x}{_op.y} att:{_.can_attack()}', file=sys.stderr, flush=True)
             if (_op.x, _op.y) in _.can_attack():
                 print(f'ATTACK {_.soldier_id} {_op.soldier_id}')
-        print(f'{_.x}{_.y} d:{_.direction}', file=sys.stderr, flush=True)
-        print(f'MOVE {_.soldier_id} {_.cam_move()[0]} miao')
+        # print(f'{_.x}{_.y} d:{_.direction}', file=sys.stderr, flush=True)
+        if _.cam_move(my_soldiers):
+            print(f'MOVE {_.soldier_id} {_.cam_move(my_soldiers)[0]} miao')
+            break
 
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
