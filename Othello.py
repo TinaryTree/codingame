@@ -40,10 +40,11 @@ class Board:
     """
     棋盘, ('.': empty, '0': black, '1': white)
     """
-    cur_color: int
+    cur_color: object
     cur_flips: List[Any]
 
     def __init__(self, _lines, _actions, color):
+        self.best_p = None
         self.steps = []
         self.color = color
         self.actions = _actions
@@ -147,7 +148,7 @@ class Board:
             self._board[x][y] = op_color(self.cur_color)
         pass
 
-    def alpha_beta(self, max_depth, color, a, b, best_value=-999999):
+    def alpha_beta(self, max_depth, color, a, b, best_value=-999):
         """
         a-b剪枝
         :param best_value:
@@ -160,7 +161,8 @@ class Board:
 
         points = list(board.get_actions(color))
         print(('step', self.steps), file=sys.stderr, flush=False)
-        print(('ab', (a, b)), file=sys.stderr, flush=False)
+        # print(('ab', (a, b)), file=sys.stderr, flush=False)
+
         print(points, file=sys.stderr, flush=False)
         if not points:
             if not list(board.get_actions(op_color(color))):
@@ -171,7 +173,8 @@ class Board:
                 return _value * -1
         if self.depth > max_depth:
             best_value = self.evaluation(color) * -1
-            print(('达到最大深度', best_value), file=sys.stderr, flush=False)
+            # print(('达到最大深度', best_value), file=sys.stderr, flush=False)
+            return None, best_value
         else:
             for _p in points:
                 self.move(_p, color)
@@ -180,7 +183,7 @@ class Board:
                 _value *= -1
                 self.depth -= 1
                 board.undo(_p)
-                print((_p, _value), file=sys.stderr, flush=False)
+                # print((_p, _value), file=sys.stderr, flush=False)
                 if _value >= b:
                     print('剪枝', file=sys.stderr, flush=False)
                     return _p, _value
@@ -189,7 +192,8 @@ class Board:
                     best_p = _p
                     if _value > a:
                         a = _value
-        return best_p, best_value
+            print('输出', file=sys.stderr, flush=False)
+            return best_p, best_value
 
     def evaluation(self, color):
         """
@@ -205,7 +209,7 @@ class Board:
 
 direction = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)]
 _id = input()  # id of your player.
-print(_id, file=sys.stderr, flush=True)
+# print(_id, file=sys.stderr, flush=True)
 board_size = int(input())
 # game loop
 while True:
@@ -213,7 +217,7 @@ while True:
     action_count = int(input())  # number of legal actions for this turn.
     actions = [input() for _ in range(action_count)]
     board = Board(lines, actions, _id)
-    board.show()
+    # board.show()
     # print(list(map(point2action, board.get_actions(_id))), file=sys.stderr, flush=False)
 
     # values = []
@@ -229,6 +233,6 @@ while True:
 
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
-    p, value = board.alpha_beta(2, _id, -9999999, 9999999)
-    print(('lastvalue', value), file=sys.stderr, flush=True)
+    p, value = board.alpha_beta(2, _id, -999, 999)
+    # print(('lastvalue', value), file=sys.stderr, flush=True)
     print(point2action(p))
