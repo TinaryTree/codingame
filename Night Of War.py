@@ -98,16 +98,16 @@ while True:
             my_soldiers.append(soldier)
         else:
             op_soldiers.append(soldier)
+    ss = ''
     for _ in my_soldiers:
+
+        if _.cam_move(my_soldiers):
+            ss = f'MOVE {_.soldier_id} {_.cam_move(my_soldiers)[0]} miao'
         for _op in op_soldiers:
             # print(f'{_op.x}{_op.y} att:{_.can_attack()}', file=sys.stderr, flush=True)
             if (_op.x, _op.y) in _.can_attack():
-                print(f'ATTACK {_.soldier_id} {_op.soldier_id}')
-        # print(f'{_.x}{_.y} d:{_.direction}', file=sys.stderr, flush=True)
-        if _.cam_move(my_soldiers):
-            print(f'MOVE {_.soldier_id} {_.cam_move(my_soldiers)[0]} miao')
-            break
-
+                ss = f'ATTACK {_.soldier_id} {_op.soldier_id}'
+    print(ss)
     # To debug: print("Debug messages...", file=sys.stderr, flush=True)
 
     # print any of actions - WAIT | MOVE <soldierId> <direction> | ATTACK <soldierID> <soldierId to attack on> | LATER > UPGRADE <id> | DEGRADE <opponent id> | SUICIDE <id>
