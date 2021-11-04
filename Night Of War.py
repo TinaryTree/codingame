@@ -1,5 +1,7 @@
 # Jrke's special
 # -Kill your enemy soldiers or Have more bucks than your enemy at end of game
+import copy
+from typing import List, Tuple
 
 my_id = int(input())  # Your unique player Id
 map_size = int(input())  # the size of map MapSize*MapSize
@@ -8,7 +10,7 @@ directions = [(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 
 
 
 class WarMap:
-    def __init__(self, blocks: list):
+    def __init__(self, blocks: List[Tuple]):
         self.blocks = blocks
         self.pos = [(_x, _y) for owner, _x, _y in blocks]
 
@@ -22,6 +24,21 @@ class WarMap:
         for owner, _x, _y in self.blocks:
             if px == _x and py == _y:
                 return owner
+
+    def set_owner(self, px, py, owner):
+        pos = list(filter(lambda _: _[1] == px and _[2] == py, blocks))[0]
+        self.blocks.remove(pos)
+        self.blocks.append((owner, px, py))
+
+    def try_move(self, _soldier, soldier_move, owner_id):
+        if soldier_move == 'UP':
+            self.set_owner(_soldier.x, _soldier.y - 1, owner_id)
+        if soldier_move == 'LEFT':
+            self.set_owner(_soldier.x - 1, _soldier.y, owner_id)
+        if soldier_move == 'DOWN':
+            self.set_owner(_soldier.x, _soldier.y + 1, owner_id)
+        if soldier_move == 'RIGHT':
+            self.set_owner(_soldier.x + 1, _soldier.y, owner_id)
 
 
 class Soldier:
@@ -69,6 +86,11 @@ class Soldier:
             return self.around_pos() + [(self.x, self.y + 2), (self.x, self.y - 2), (self.x + 2, self.y)]
 
 
+def evaluate(map: WarMap, soldiers: List[Soldier]):
+    fx = {my_id: 1, -1: 0, 1-my_id: -1}
+    return sum((fx[_[0]] for _ in map.blocks))
+
+
 # game loop
 while True:
     my_bucks = int(input())  # Your Money
@@ -99,16 +121,23 @@ while True:
         else:
             op_soldiers.append(soldier)
     ss = ''
+    my_map = WarMap(blocks)
+    actions = []
     for _ in my_soldiers:
+        for move in _.cam_move(my_soldiers):
+            _map = copy.deepcopy(my_map)
+            _map.try_move(_, move, my_id)
+            score = evaluate(_map, op_soldiers)
+            actions.append((score, f'MOVE {_.soldier_id} {move} {score}'))
 
-        if _.cam_move(my_soldiers):
-            ss = f'MOVE {_.soldier_id} {_.cam_move(my_soldiers)[0]} miao'
+    for _ in my_soldiers:
         for _op in op_soldiers:
             # print(f'{_op.x}{_op.y} att:{_.can_attack()}', file=sys.stderr, flush=True)
             if (_op.x, _op.y) in _.can_attack():
-                ss = f'ATTACK {_.soldier_id} {_op.soldier_id}'
-    print(ss)
-    # To debug: print("Debug messages...", file=sys.stderr, flush=True)
+                actions.append((100, f'ATTACK {_.soldier_id} {_op.soldier_id}'))
 
-    # print any of actions - WAIT | MOVE <soldierId> <direction> | ATTACK <soldierID> <soldierId to attack on> | LATER > UPGRADE <id> | DEGRADE <opponent id> | SUICIDE <id>
-    # print("WAIT")
+    print(max(actions)[1])
+# To debug: print("Debug messages...", file=sys.stderr, flush=True)
+
+# print any of actions - WAIT | MOVE <soldierId> <direction> | ATTACK <soldierID> <soldierId to attack on> | LATER > UPGRADE <id> | DEGRADE <opponent id> | SUICIDE <id>
+# print("WAIT")
