@@ -120,10 +120,11 @@ class WarMap:
         return 0
 
     def score(self):
-        return self.map_score() + self.be_attacked() + self.dis_score()
+        return self.map_score() + self.be_attacked()
+
+    # game loop
 
 
-# game loop
 while True:
     my_bucks = int(input())  # Your Money
     opp_bucks = int(input())  # Opponent Money
